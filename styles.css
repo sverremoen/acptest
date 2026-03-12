@@ -2,10 +2,10 @@
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #f4f7ff;
+  color: #f6f8ff;
   background:
-    radial-gradient(circle at top, rgba(114, 159, 255, 0.28), transparent 32%),
-    linear-gradient(180deg, #11172b 0%, #0a0f1d 100%);
+    radial-gradient(circle at top, #243d8f 0%, #131a34 42%, #0a0f20 100%),
+    #0a0f20;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,22 +18,11 @@
 
 body {
   margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
 }
 
-button {
+button,
+select {
   font: inherit;
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    opacity 0.18s ease;
-}
-
-button:focus-visible {
-  outline: 3px solid #8fd3ff;
-  outline-offset: 3px;
 }
 
 .app-shell {
@@ -44,7 +33,7 @@ button:focus-visible {
 }
 
 .game-panel {
-  width: min(100%, 920px);
+  width: min(100%, 1180px);
   background: rgba(18, 26, 52, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
@@ -72,17 +61,95 @@ h1 {
 
 .description {
   margin: 12px 0 0;
-  max-width: 42rem;
+  max-width: 54rem;
   color: #d2daf3;
 }
 
-.status-bar {
+.controls-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
+.preset-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preset-button,
+.reset-button,
+.field-control select {
+  border: 0;
+  border-radius: 16px;
+  min-height: 48px;
+}
+
+.preset-button {
+  min-width: 150px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eef3ff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+  text-align: left;
+}
+
+.preset-button strong,
+.preset-button span {
+  display: block;
+}
+
+.preset-button span {
+  margin-top: 2px;
+  font-size: 0.86rem;
+  color: #b9c7ef;
+}
+
+.preset-button:hover,
+.memory-card:hover,
+.reset-button:hover {
+  transform: translateY(-2px);
+}
+
+.preset-button.is-active {
+  background: linear-gradient(145deg, #8fd3ff, #79f0c9);
+  color: #11234d;
+  border-color: rgba(143, 211, 255, 0.8);
+}
+
+.preset-button.is-active span {
+  color: rgba(17, 35, 77, 0.8);
+}
+
+.custom-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  gap: 12px;
+  align-items: end;
+}
+
+.field-control {
+  display: grid;
+  gap: 8px;
+}
+
+.field-control span,
+.board-chip span,
+.status-card span {
+  display: block;
+  font-size: 0.88rem;
+  color: #b9c7ef;
+}
+
+.field-control select {
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #11234d;
+  min-width: 110px;
+}
+
+.board-chip,
 .status-card {
   padding: 14px 16px;
   border-radius: 18px;
@@ -90,20 +157,21 @@ h1 {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.status-card span {
+.board-chip strong,
+.status-card strong {
   display: block;
-  font-size: 0.88rem;
-  color: #b9c7ef;
-  margin-bottom: 4px;
+  margin-top: 4px;
 }
 
-.status-card strong {
-  font-size: 1.05rem;
+.status-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -115,13 +183,10 @@ h1 {
   border-radius: 22px;
   background: linear-gradient(145deg, #5b7cff, #7a5cff);
   color: #ffffff;
-  min-height: 72px;
+  min-height: 56px;
   box-shadow: 0 12px 24px rgba(46, 54, 115, 0.35);
   transform: translateY(0);
-}
-
-.memory-card:hover {
-  transform: translateY(-2px);
+  transition: transform 140ms ease, box-shadow 140ms ease, background 180ms ease;
 }
 
 .memory-card.is-flipped,
@@ -139,12 +204,12 @@ h1 {
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-size: clamp(1.1rem, 2vw, 2.4rem);
   font-weight: 700;
 }
 
 .card-back {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-size: clamp(1rem, 1.5vw, 2rem);
 }
 
 .memory-card.is-flipped .card-back,
@@ -166,9 +231,7 @@ h1 {
 }
 
 .reset-button {
-  border-radius: 12px;
-  border: 0;
-  padding: 0.85rem 1.1rem;
+  padding: 0 18px;
   background: #8fd3ff;
   color: #11234d;
   font-weight: 700;
@@ -177,6 +240,18 @@ h1 {
 .win-text {
   margin: 0;
   color: #dfffe8;
+}
+
+@media (max-width: 900px) {
+  .custom-controls,
+  .status-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .board-chip,
+  .status-card:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 680px) {
@@ -189,12 +264,23 @@ h1 {
     border-radius: 22px;
   }
 
+  .custom-controls,
   .status-bar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+
+  .field-control select,
+  .preset-button {
+    min-width: 0;
+    width: 100%;
   }
 
   .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
+  }
+
+  .memory-card {
+    min-height: 48px;
+    border-radius: 18px;
   }
 }
