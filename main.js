@@ -1,152 +1,4 @@
-const EMOJIS = [
-  '🐶',
-  '🍕',
-  '🚀',
-  '🎸',
-  '🌈',
-  '🦄',
-  '🐙',
-  '🍩',
-  '⚽',
-  '🎯',
-  '🌟',
-  '🐼',
-  '🧩',
-  '🍉',
-  '🚲',
-  '🐢',
-  '🎈',
-  '🦊',
-  '🐸',
-  '🍓',
-]
-
-const MODES = [
-  { name: 'Lynstart', rows: 3, columns: 4 },
-  { name: 'Dobbel dose', rows: 3, columns: 6 },
-  { name: 'Mesterbrett', rows: 4, columns: 6 },
-  { name: 'Emoji-maraton', rows: 5, columns: 8 },
-]
-
-function shuffle(items) {
-  const copy = [...items]
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
-  }
-  return copy
-}
-
-function createDeck(totalCards) {
-  const pairCount = totalCards / 2
-  const selectedEmojis = EMOJIS.slice(0, pairCount)
-
-  return shuffle(
-    selectedEmojis.flatMap((emoji, index) => [
-      { id: index * 2, emoji, matched: false },
-      { id: index * 2 + 1, emoji, matched: false },
-    ]),
-  )
-}
-
-function getActiveMode(rows, columns) {
-  return MODES.find((mode) => mode.rows === rows && mode.columns === columns)
-}
-
-const state = {
-  rows: 3,
-  columns: 4,
-  cards: createDeck(12),
-  flippedIds: [],
-  moves: 0,
-  isResolving: false,
-}
-
-const app = document.querySelector('#app')
-
-function hasWon() {
-  return state.cards.length > 0 && state.cards.every((card) => card.matched)
-}
-
-function matchedCount() {
-  return state.cards.filter((card) => card.matched).length
-}
-
-function resetGame(nextRows = state.rows, nextColumns = state.columns) {
-  state.rows = nextRows
-  state.columns = nextColumns
-  state.cards = createDeck(nextRows * nextColumns)
-  state.flippedIds = []
-  state.moves = 0
-  state.isResolving = false
-  render()
-}
-
-function handleModeClick(rows, columns) {
-  resetGame(rows, columns)
-}
-
-function handleSizeChange(kind, value) {
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) return
-
-  const nextRows = kind === 'rows' ? numeric : state.rows
-  const nextColumns = kind === 'columns' ? numeric : state.columns
-
-  if (nextRows < 2 || nextRows > 6 || nextColumns < 2 || nextColumns > 8) {
-    return
-  }
-
-  const totalCards = nextRows * nextColumns
-  if (totalCards % 2 !== 0) {
-    return
-  }
-
-  resetGame(nextRows, nextColumns)
-}
-
-function handleCardClick(cardId) {
-  const card = state.cards.find((item) => item.id === cardId)
-  const isFlipped = state.flippedIds.includes(cardId)
-
-  if (!card || card.matched || isFlipped || state.isResolving || state.flippedIds.length === 2) {
-    return
-  }
-
-  state.flippedIds = [...state.flippedIds, cardId]
-  render()
-
-  if (state.flippedIds.length !== 2) {
-    return
-  }
-
-  state.moves += 1
-  state.isResolving = true
-  const [firstId, secondId] = state.flippedIds
-  const firstCard = state.cards.find((item) => item.id === firstId)
-  const secondCard = state.cards.find((item) => item.id === secondId)
-  const match = firstCard && secondCard && firstCard.emoji === secondCard.emoji
-
-  window.setTimeout(() => {
-    if (match) {
-      state.cards = state.cards.map((item) =>
-        state.flippedIds.includes(item.id) ? { ...item, matched: true } : item,
-      )
-    }
-
-    state.flippedIds = []
-    state.isResolving = false
-    render()
-  }, match ? 350 : 850)
-}
-
-function render() {
-  const won = hasWon()
-  const activeMode = getActiveMode(state.rows, state.columns)
-  const totalCards = state.rows * state.columns
-  const foundCards = matchedCount()
-
-  app.innerHTML = `
+(function(){const s=document.createElement("link").relList;if(s&&s.supports&&s.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))a(e);new MutationObserver(e=>{for(const n of e)if(n.type==="childList")for(const c of n.addedNodes)c.tagName==="LINK"&&c.rel==="modulepreload"&&a(c)}).observe(document,{childList:!0,subtree:!0});function o(e){const n={};return e.integrity&&(n.integrity=e.integrity),e.referrerPolicy&&(n.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?n.credentials="include":e.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function a(e){if(e.ep)return;e.ep=!0;const n=o(e);fetch(e.href,n)}})();const g=["🐶","🍕","🚀","🎸","🌈","🦄","🐙","🍩","⚽","🎯","🌟","🐼","🧩","🍉","🚲","🐢","🎈","🦊","🐸","🍓"],m=[{name:"Lynstart",rows:3,columns:4},{name:"Dobbel dose",rows:3,columns:6},{name:"Mesterbrett",rows:4,columns:6},{name:"Emoji-maraton",rows:5,columns:8}];function v(r){const s=[...r];for(let o=s.length-1;o>0;o-=1){const a=Math.floor(Math.random()*(o+1));[s[o],s[a]]=[s[a],s[o]]}return s}function f(r){const s=r/2,o=g.slice(0,s);return v(o.flatMap((a,e)=>[{id:e*2,emoji:a,matched:!1},{id:e*2+1,emoji:a,matched:!1}]))}function b(r,s){return m.find(o=>o.rows===r&&o.columns===s)}const t={rows:3,columns:4,cards:f(12),flippedIds:[],moves:0,isResolving:!1},l=document.querySelector("#app");function h(){return t.cards.length>0&&t.cards.every(r=>r.matched)}function $(){return t.cards.filter(r=>r.matched).length}function u(r=t.rows,s=t.columns){t.rows=r,t.columns=s,t.cards=f(r*s),t.flippedIds=[],t.moves=0,t.isResolving=!1,d()}function w(r,s){u(r,s)}function y(r,s){const o=Number(s);if(!Number.isFinite(o))return;const a=r==="rows"?o:t.rows,e=r==="columns"?o:t.columns;a<2||a>6||e<2||e>8||a*e%2!==0||u(a,e)}function k(r){const s=t.cards.find(i=>i.id===r),o=t.flippedIds.includes(r);if(!s||s.matched||o||t.isResolving||t.flippedIds.length===2||(t.flippedIds=[...t.flippedIds,r],d(),t.flippedIds.length!==2))return;t.moves+=1,t.isResolving=!0;const[a,e]=t.flippedIds,n=t.cards.find(i=>i.id===a),c=t.cards.find(i=>i.id===e),p=n&&c&&n.emoji===c.emoji;window.setTimeout(()=>{p&&(t.cards=t.cards.map(i=>t.flippedIds.includes(i.id)?{...i,matched:!0}:i)),t.flippedIds=[],t.isResolving=!1,d()},p?350:850)}function d(){const r=h(),s=b(t.rows,t.columns),o=t.rows*t.columns,a=$();l.innerHTML=`
     <main class="app-shell">
       <section class="game-panel">
         <div class="game-copy">
@@ -159,43 +11,36 @@ function render() {
 
         <div class="controls-panel">
           <div class="preset-group" aria-label="Spillmoduser">
-            ${MODES.map((mode) => {
-              const active = mode.rows === state.rows && mode.columns === state.columns
-              return `
+            ${m.map(e=>`
                 <button
                   type="button"
-                  class="preset-button ${active ? 'is-active' : ''}"
-                  data-mode="${mode.rows}x${mode.columns}"
+                  class="preset-button ${e.rows===t.rows&&e.columns===t.columns?"is-active":""}"
+                  data-mode="${e.rows}x${e.columns}"
                 >
-                  <strong>${mode.name}</strong>
-                  <span>${mode.rows} × ${mode.columns} · ${mode.rows * mode.columns} kort</span>
+                  <strong>${e.name}</strong>
+                  <span>${e.rows} × ${e.columns} · ${e.rows*e.columns} kort</span>
                 </button>
-              `
-            }).join('')}
+              `).join("")}
           </div>
 
           <div class="custom-controls">
             <label class="field-control">
               <span>Rader</span>
               <select data-size="rows">
-                ${[2, 3, 4, 5, 6]
-                  .map((value) => `<option value="${value}" ${value === state.rows ? 'selected' : ''}>${value}</option>`)
-                  .join('')}
+                ${[2,3,4,5,6].map(e=>`<option value="${e}" ${e===t.rows?"selected":""}>${e}</option>`).join("")}
               </select>
             </label>
 
             <label class="field-control">
               <span>Kolonner</span>
               <select data-size="columns">
-                ${[2, 3, 4, 5, 6, 7, 8]
-                  .map((value) => `<option value="${value}" ${value === state.columns ? 'selected' : ''}>${value}</option>`)
-                  .join('')}
+                ${[2,3,4,5,6,7,8].map(e=>`<option value="${e}" ${e===t.columns?"selected":""}>${e}</option>`).join("")}
               </select>
             </label>
 
             <div class="board-chip">
-              <span>${activeMode ? 'Aktiv modus' : 'Egendefinert brett'}</span>
-              <strong>${activeMode ? activeMode.name : 'Fri lek'} · ${state.rows} × ${state.columns} · ${totalCards} kort</strong>
+              <span>${s?"Aktiv modus":"Egendefinert brett"}</span>
+              <strong>${s?s.name:"Fri lek"} · ${t.rows} × ${t.columns} · ${o} kort</strong>
             </div>
           </div>
         </div>
@@ -203,66 +48,37 @@ function render() {
         <div class="status-bar">
           <div class="status-card">
             <span>Trekk</span>
-            <strong>${state.moves}</strong>
+            <strong>${t.moves}</strong>
           </div>
           <div class="status-card">
             <span>Fremdrift</span>
-            <strong>${foundCards}/${totalCards} kort funnet</strong>
+            <strong>${a}/${o} kort funnet</strong>
           </div>
           <div class="status-card status-card-wide">
             <span>Status</span>
-            <strong>${won ? 'Du vant! 🎉' : 'På jakt etter par'}</strong>
+            <strong>${r?"Du vant! 🎉":"På jakt etter par"}</strong>
           </div>
         </div>
 
-        <div class="grid" aria-label="Emoji Memory spillbrett" style="grid-template-columns: repeat(${state.columns}, minmax(0, 1fr));">
-          ${state.cards
-            .map((card) => {
-              const visible = card.matched || state.flippedIds.includes(card.id)
-              return `
+        <div class="grid" aria-label="Emoji Memory spillbrett" style="grid-template-columns: repeat(${t.columns}, minmax(0, 1fr));">
+          ${t.cards.map(e=>{const n=e.matched||t.flippedIds.includes(e.id);return`
                 <button
                   type="button"
-                  class="memory-card ${visible ? 'is-flipped' : ''} ${card.matched ? 'is-matched' : ''}"
-                  data-card-id="${card.id}"
-                  aria-label="${visible ? `Kort med ${card.emoji}` : 'Skjult kort'}"
-                  aria-pressed="${visible}"
+                  class="memory-card ${n?"is-flipped":""} ${e.matched?"is-matched":""}"
+                  data-card-id="${e.id}"
+                  aria-label="${n?`Kort med ${e.emoji}`:"Skjult kort"}"
+                  aria-pressed="${n}"
                 >
-                  <span class="card-face card-front">${card.emoji}</span>
+                  <span class="card-face card-front">${e.emoji}</span>
                   <span class="card-face card-back">?</span>
                 </button>
-              `
-            })
-            .join('')}
+              `}).join("")}
         </div>
 
         <div class="footer-row">
           <button type="button" class="reset-button" data-reset-game="true">Spill igjen</button>
-          ${won ? `<p class="win-text">Du klarte ${totalCards} kort på ${state.moves} trekk.</p>` : ''}
+          ${r?`<p class="win-text">Du klarte ${o} kort på ${t.moves} trekk.</p>`:""}
         </div>
       </section>
     </main>
-  `
-
-  app.querySelectorAll('[data-card-id]').forEach((button) => {
-    button.addEventListener('click', () => {
-      handleCardClick(Number(button.getAttribute('data-card-id')))
-    })
-  })
-
-  app.querySelectorAll('[data-mode]').forEach((button) => {
-    button.addEventListener('click', () => {
-      const [rows, columns] = button.getAttribute('data-mode').split('x').map(Number)
-      handleModeClick(rows, columns)
-    })
-  })
-
-  app.querySelectorAll('[data-size]').forEach((select) => {
-    select.addEventListener('change', (event) => {
-      handleSizeChange(select.getAttribute('data-size'), event.target.value)
-    })
-  })
-
-  app.querySelector('[data-reset-game]')?.addEventListener('click', () => resetGame())
-}
-
-render()
+  `,l.querySelectorAll("[data-card-id]").forEach(e=>{e.addEventListener("click",()=>{k(Number(e.getAttribute("data-card-id")))})}),l.querySelectorAll("[data-mode]").forEach(e=>{e.addEventListener("click",()=>{const[n,c]=e.getAttribute("data-mode").split("x").map(Number);w(n,c)})}),l.querySelectorAll("[data-size]").forEach(e=>{e.addEventListener("change",n=>{y(e.getAttribute("data-size"),n.target.value)})}),l.querySelector("[data-reset-game]")?.addEventListener("click",()=>u())}d();
