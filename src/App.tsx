@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 type Card = {
@@ -7,7 +7,39 @@ type Card = {
   matched: boolean
 }
 
-const EMOJIS = ['🐶', '🍕', '🚀', '🎸', '🌈', '🦄']
+type BoardPreset = {
+  label: string
+  rows: number
+  columns: number
+}
+
+const EMOJIS = [
+  '🐶',
+  '🍕',
+  '🚀',
+  '🎸',
+  '🌈',
+  '🦄',
+  '🐙',
+  '🍩',
+  '⚽',
+  '🎯',
+  '🌟',
+  '🐼',
+  '🧩',
+  '🍉',
+  '🚲',
+  '🐢',
+  '🎈',
+  '🦊',
+]
+
+const PRESETS: BoardPreset[] = [
+  { label: '12 kort (3 × 4)', rows: 3, columns: 4 },
+  { label: '18 kort (3 × 6)', rows: 3, columns: 6 },
+  { label: '24 kort (4 × 6)', rows: 4, columns: 6 },
+  { label: '35 kort (5 × 7)', rows: 5, columns: 7 },
+]
 
 function shuffle<T>(items: T[]) {
   const copy = [...items]
@@ -20,22 +52,44 @@ function shuffle<T>(items: T[]) {
   return copy
 }
 
-function createDeck(): Card[] {
-  return shuffle(
-    EMOJIS.flatMap((emoji, index) => [
-      { id: index * 2, emoji, matched: false },
-      { id: index * 2 + 1, emoji, matched: false },
-    ]),
-  )
+function createDeck(totalCards: number): Card[] {
+  const pairCount = Math.ceil(totalCards / 2)
+  const selectedEmojis = EMOJIS.slice(0, pairCount)
+  const duplicated = selectedEmojis.flatMap((emoji, index) => [
+    { id: index * 2, emoji, matched: false },
+    { id: index * 2 + 1, emoji, matched: false },
+  ])
+
+  return shuffle(duplicated.slice(0, totalCards))
+}
+
+function findPreset(rows: number, columns: number) {
+  return PRESETS.find((preset) => preset.rows === rows && preset.columns === columns)
 }
 
 function App() {
-  const [cards, setCards] = useState<Card[]>(() => createDeck())
+  const [rows, setRows] = useState(3)
+  const [columns, setColumns] = useState(4)
+  const [cards, setCards] = useState<Card[]>(() => createDeck(12))
   const [flippedIds, setFlippedIds] = useState<number[]>([])
   const [moves, setMoves] = useState(0)
   const [isResolving, setIsResolving] = useState(false)
 
-  const hasWon = cards.length > 0 && cards.every((card) => card.matched)
+  const totalCards = rows * columns
+  const matchedCards = cards.filter((card) => card.matched).length
+  const hasWon = cards.length > 0 && matchedCards === cards.length
+  const activePreset = findPreset(rows, columns)
+
+  const boardSummary = useMemo(() => {
+    const pairCount = Math.ceil(totalCards / 2)
+    const duplicateCount = pairCount * 2 - totalCards
+
+    if (duplicateCount > 0) {
+      return `${totalCards} kort (${rows} × ${columns}) · ${pairCount} emoji-par, hvor ${duplicateCount} kort blir uten makker.`
+    }
+
+    return `${totalCards} kort (${rows} × ${columns}) · ${pairCount} emoji-par`
+  }, [columns, rows, totalCards])
 
   useEffect(() => {
     if (flippedIds.length !== 2) {
@@ -68,11 +122,33 @@ function App() {
     return () => window.clearTimeout(timeoutId)
   }, [cards, flippedIds])
 
-  function resetGame() {
-    setCards(createDeck())
+  function resetGame(nextRows = rows, nextColumns = columns) {
+    setRows(nextRows)
+    setColumns(nextColumns)
+    setCards(createDeck(nextRows * nextColumns))
     setFlippedIds([])
     setMoves(0)
     setIsResolving(false)
+  }
+
+  function handlePresetSelect(preset: BoardPreset) {
+    resetGame(preset.rows, preset.columns)
+  }
+
+  function handleRowsChange(value: number) {
+    if (Number.isNaN(value) || value < 2 || value > 6) {
+      return
+    }
+
+    resetGame(value, columns)
+  }
+
+  function handleColumnsChange(value: number) {
+    if (Number.isNaN(value) || value < 2 || value > 8) {
+      return
+    }
+
+    resetGame(rows, value)
   }
 
   function handleCardClick(card: Card) {
@@ -98,9 +174,63 @@ function App() {
           <p className="eyebrow">Emoji Memory</p>
           <h1>Finn alle parene</h1>
           <p className="description">
-            Snu to kort om gangen. Treffer du et par blir de stående, ellers snus de
-            tilbake.
+            Velg vanskelighetsgrad eller sett opp ditt eget brett. Snu to kort om
+            gangen og prøv å huske hvor emoji-vennene skjuler seg.
           </p>
+        </div>
+
+        <div className="controls-panel">
+          <div className="preset-group" aria-label="Ferdige brettstørrelser">
+            {PRESETS.map((preset) => {
+              const isActive = preset.rows === rows && preset.columns === columns
+
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={`preset-button ${isActive ? 'is-active' : ''}`}
+                  onClick={() => handlePresetSelect(preset)}
+                >
+                  {preset.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="custom-controls">
+            <label className="field-control">
+              <span>Rader</span>
+              <select
+                value={rows}
+                onChange={(event) => handleRowsChange(Number(event.target.value))}
+              >
+                {[2, 3, 4, 5, 6].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field-control">
+              <span>Kolonner</span>
+              <select
+                value={columns}
+                onChange={(event) => handleColumnsChange(Number(event.target.value))}
+              >
+                {[2, 3, 4, 5, 6, 7, 8].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="board-chip">
+              <span>{activePreset ? 'Preset' : 'Egendefinert'}</span>
+              <strong>{boardSummary}</strong>
+            </div>
+          </div>
         </div>
 
         <div className="status-bar">
@@ -109,12 +239,22 @@ function App() {
             <strong>{moves}</strong>
           </div>
           <div className="status-card">
+            <span>Fremdrift</span>
+            <strong>
+              {matchedCards}/{cards.length} kort funnet
+            </strong>
+          </div>
+          <div className="status-card status-card-wide">
             <span>Status</span>
             <strong>{hasWon ? 'Du vant! 🎉' : 'På jakt etter par'}</strong>
           </div>
         </div>
 
-        <div className="grid" aria-label="Emoji Memory spillbrett">
+        <div
+          className="grid"
+          aria-label="Emoji Memory spillbrett"
+          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        >
           {cards.map((card) => {
             const isVisible = card.matched || flippedIds.includes(card.id)
 
@@ -135,10 +275,14 @@ function App() {
         </div>
 
         <div className="footer-row">
-          <button type="button" className="reset-button" onClick={resetGame}>
+          <button type="button" className="reset-button" onClick={() => resetGame()}>
             Spill igjen
           </button>
-          {hasWon ? <p className="win-text">Alle 6 par funnet på {moves} trekk.</p> : null}
+          {hasWon ? (
+            <p className="win-text">
+              Du klarte {cards.length} kort på {moves} trekk!{activePreset ? ' Klar for neste nivå?' : ''}
+            </p>
+          ) : null}
         </div>
       </section>
     </main>
