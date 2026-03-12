@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
 type Card = {
@@ -74,10 +74,14 @@ function App() {
   const [flippedIds, setFlippedIds] = useState<number[]>([])
   const [moves, setMoves] = useState(0)
   const [isResolving, setIsResolving] = useState(false)
+  const [justMatchedIds, setJustMatchedIds] = useState<number[]>([])
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const previousHasWonRef = useRef(false)
 
   const totalCards = rows * columns
   const matchedCards = cards.filter((card) => card.matched).length
   const hasWon = cards.length > 0 && matchedCards === cards.length
+  const isGameActive = (moves > 0 || matchedCards > 0 || flippedIds.length > 0) && !hasWon
   const activePreset = findPreset(rows, columns)
 
   const boardSummary = useMemo(() => {
@@ -90,6 +94,66 @@ function App() {
 
     return `${totalCards} kort (${rows} × ${columns}) · ${pairCount} emoji-par`
   }, [columns, rows, totalCards])
+
+  const playTone = useCallback(
+    (
+      frequency: number,
+      duration = 0.09,
+      type: OscillatorType = 'sine',
+      volume = 0.08,
+      delay = 0,
+    ) => {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+      if (!AudioContextClass) {
+        return
+      }
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContextClass()
+      }
+
+      const context = audioContextRef.current
+      const startAt = context.currentTime + delay
+
+      if (context.state === 'suspended') {
+        void context.resume()
+      }
+
+      const oscillator = context.createOscillator()
+      const gainNode = context.createGain()
+
+      oscillator.type = type
+      oscillator.frequency.setValueAtTime(frequency, startAt)
+
+      gainNode.gain.setValueAtTime(0.0001, startAt)
+      gainNode.gain.exponentialRampToValueAtTime(volume, startAt + 0.01)
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startAt + duration)
+
+      oscillator.connect(gainNode)
+      gainNode.connect(context.destination)
+
+      oscillator.start(startAt)
+      oscillator.stop(startAt + duration + 0.02)
+    },
+    [],
+  )
+
+  const playFlipSound = useCallback(() => {
+    playTone(540, 0.07, 'triangle', 0.05)
+  }, [playTone])
+
+  const playMatchSound = useCallback(() => {
+    playTone(620, 0.08, 'sine', 0.07)
+    playTone(820, 0.12, 'sine', 0.065, 0.05)
+  }, [playTone])
+
+  const playWinSound = useCallback(() => {
+    playTone(700, 0.1, 'triangle', 0.08)
+    playTone(900, 0.11, 'triangle', 0.08, 0.07)
+    playTone(1180, 0.2, 'sine', 0.09, 0.14)
+  }, [playTone])
 
   useEffect(() => {
     if (flippedIds.length !== 2) {
@@ -108,19 +172,40 @@ function App() {
 
     const timeoutId = window.setTimeout(() => {
       if (isMatch) {
+        setJustMatchedIds([firstId, secondId])
+        playMatchSound()
+
         setCards((currentCards) =>
           currentCards.map((card) =>
             flippedIds.includes(card.id) ? { ...card, matched: true } : card,
           ),
         )
+
+        window.setTimeout(() => setJustMatchedIds([]), 360)
       }
 
       setFlippedIds([])
       setIsResolving(false)
-    }, isMatch ? 350 : 850)
+    }, isMatch ? 320 : 800)
 
     return () => window.clearTimeout(timeoutId)
-  }, [cards, flippedIds])
+  }, [cards, flippedIds, playMatchSound])
+
+  useEffect(() => {
+    if (hasWon && !previousHasWonRef.current) {
+      playWinSound()
+    }
+
+    previousHasWonRef.current = hasWon
+  }, [hasWon, playWinSound])
+
+  useEffect(() => {
+    document.body.classList.toggle('no-page-scroll', isGameActive)
+
+    return () => {
+      document.body.classList.remove('no-page-scroll')
+    }
+  }, [isGameActive])
 
   function resetGame(nextRows = rows, nextColumns = columns) {
     setRows(nextRows)
@@ -129,6 +214,7 @@ function App() {
     setFlippedIds([])
     setMoves(0)
     setIsResolving(false)
+    setJustMatchedIds([])
   }
 
   function handlePresetSelect(preset: BoardPreset) {
@@ -158,6 +244,8 @@ function App() {
       return
     }
 
+    playFlipSound()
+
     const nextFlippedIds = [...flippedIds, card.id]
     setFlippedIds(nextFlippedIds)
 
@@ -168,8 +256,8 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <section className="game-panel">
+    <main className={`app-shell ${isGameActive ? 'is-in-game' : ''}`}>
+      <section className={`game-panel ${hasWon ? 'is-celebrating' : ''}`}>
         <div className="game-copy">
           <p className="eyebrow">Emoji Memory</p>
           <h1>Finn alle parene</h1>
@@ -257,12 +345,13 @@ function App() {
         >
           {cards.map((card) => {
             const isVisible = card.matched || flippedIds.includes(card.id)
+            const isJustMatched = justMatchedIds.includes(card.id)
 
             return (
               <button
                 key={card.id}
                 type="button"
-                className={`memory-card ${isVisible ? 'is-flipped' : ''} ${card.matched ? 'is-matched' : ''}`}
+                className={`memory-card ${isVisible ? 'is-flipped' : ''} ${card.matched ? 'is-matched' : ''} ${isJustMatched ? 'is-just-matched' : ''}`}
                 onClick={() => handleCardClick(card)}
                 aria-label={isVisible ? `Kort med ${card.emoji}` : 'Skjult kort'}
                 aria-pressed={isVisible}
